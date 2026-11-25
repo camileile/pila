@@ -9,8 +9,8 @@ const DIAS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const NOMES = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 const TITULOS = ['Período', 'Dias de aula', 'Compromissos', 'Saldo'];
 
-export function NovoCiclo({ saldoSugerido, aoCancelar, aoCriar }: {
-  saldoSugerido?: Centavos; aoCancelar?: () => void; aoCriar: () => void;
+export function NovoCiclo({ saldoSugerido, aporteFinal, aoCancelar, aoCriar }: {
+  saldoSugerido?: Centavos; aporteFinal?: RascunhoCiclo['aporteFinal']; aoCancelar?: () => void; aoCriar: () => void;
 }) {
   const modelos = usarModelos();
   const hoje = hojeApp();
@@ -48,7 +48,7 @@ export function NovoCiclo({ saldoSugerido, aoCancelar, aoCriar }: {
 
   async function salvar() {
     setSalvando(true);
-    await criarCiclo({ ...rascunho, contas: rascunho.contas.map((c) => ({ ...c, descricao: c.descricao.trim() })) });
+    await criarCiclo({ ...rascunho, aporteFinal, contas: rascunho.contas.map((c) => ({ ...c, descricao: c.descricao.trim() })) });
     aoCriar();
   }
 

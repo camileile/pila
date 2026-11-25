@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Centavos, Data, Recesso, TipoMovimento } from '../engine';
+import type { Centavos, Data, Recesso, RegraCarimbo, TipoMovimento } from '../engine';
 
 /** Campos comuns: prontos para sincronizar com um servidor no futuro (§6). */
 export interface Base {
@@ -59,6 +59,24 @@ export interface MovimentoRow extends Base {
   descricao?: string;
   contaCicloId?: string;
   metaId?: string;
+  fonteId?: string;
+}
+
+export interface MetaRow extends Base {
+  /** GERAL = Cofrinho Geral (reserva de emergência, sem alvo). */
+  tipo: 'GERAL' | 'META';
+  titulo: string;
+  valorObjetivo?: Centavos;
+  dataAlvo?: Data;
+  ativa: boolean;
+}
+
+export interface FonteRendaRow extends Base {
+  nome: string;
+  valorPrevisto?: Centavos;
+  regraCarimbo: RegraCarimbo;
+  metaDestinoId?: string;
+  ativa: boolean;
 }
 
 export interface ReservaRow extends Base {
@@ -97,10 +115,12 @@ export class PilaDB extends Dexie {
   reservas!: EntityTable<ReservaRow, 'id'>;
   fechamentos!: EntityTable<FechamentoRow, 'id'>;
   config!: EntityTable<ConfigRow, 'id'>;
+  metas!: EntityTable<MetaRow, 'id'>;
+  fontesRenda!: EntityTable<FonteRendaRow, 'id'>;
 
   constructor(nome = 'pila') {
     super(nome);
-    this.version(1).stores({
+    const v1 = {
       ciclos: 'id, status',
       gastosFixos: 'id',
       contasFixas: 'id',
@@ -110,7 +130,10 @@ export class PilaDB extends Dexie {
       reservas: 'id, cicloId',
       fechamentos: 'id, cicloId, dataFim',
       config: 'id',
-    });
+    };
+    this.version(1).stores(v1);
+    // Fase 3: metas, fontes de renda e índice de movimentos por meta.
+    this.version(2).stores({ ...v1, movimentos: 'id, cicloId, data, metaId', metas: 'id', fontesRenda: 'id' });
   }
 }
 
@@ -118,7 +141,7 @@ export const db = new PilaDB();
 
 export const TABELAS = [
   'ciclos', 'gastosFixos', 'contasFixas', 'contasCiclo', 'registrosFixos',
-  'movimentos', 'reservas', 'fechamentos', 'config',
+  'movimentos', 'reservas', 'fechamentos', 'config', 'metas', 'fontesRenda',
 ] as const;
 
 /** Cria os campos de sincronização de um registro novo. */

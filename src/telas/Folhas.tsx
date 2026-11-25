@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { fecharPeriodo, type Data } from '../engine';
-import { fecharDia, lancarGasto, registrarEntrada } from '../db/acoes';
+import { fecharPeriodo, proximoSabado, tetoDoDia, ultimoDia, type Data } from '../engine';
+import { agendarRole, fecharDia, lancarGasto } from '../db/acoes';
 import { lancamentosAte, montarEstado, type DadosCiclo } from '../db/estado';
 import { dataCurta, reais } from '../lib/formato';
 import { CampoDinheiro, Folha, Valor } from '../ui/componentes';
@@ -9,7 +9,7 @@ import { mensagemFechamento } from './Hoje';
 export const CATEGORIAS = ['Alimentação', 'Lazer', 'Delivery', 'Transporte', 'Outros'];
 
 /** RF06 — 3 toques: abrir, digitar valor, salvar (categoria já vem marcada). */
-export function FolhaGasto({ d, hoje, aoFechar, avisar }: { d: DadosCiclo; hoje: Data; aoFechar: () => void; avisar: (m: string) => void }) {
+export function FolhaGasto({ d, data, aoFechar, avisar }: { d: DadosCiclo; data: Data; aoFechar: () => void; avisar: (m: string) => void }) {
   const [valor, setValor] = useState(0);
   const [categoria, setCategoria] = useState(CATEGORIAS[0]!);
   return (
@@ -19,26 +19,50 @@ export function FolhaGasto({ d, hoje, aoFechar, avisar }: { d: DadosCiclo; hoje:
         {CATEGORIAS.map((c) => <button key={c} className="chip" aria-pressed={c === categoria} onClick={() => setCategoria(c)}>{c}</button>)}
       </div>
       <button className="btn btn-primario btn-bloco" disabled={valor <= 0}
-        onClick={async () => { await lancarGasto(d.ciclo.id, hoje, valor, categoria); avisar(`Gasto de ${reais(valor)} lançado.`); aoFechar(); }}>
+        onClick={async () => { await lancarGasto(d.ciclo.id, data, valor, categoria); avisar(`Gasto de ${reais(valor)} lançado.`); aoFechar(); }}>
         Salvar
       </button>
     </Folha>
   );
 }
 
-export function FolhaEntrada({ d, hoje, aoFechar, avisar }: { d: DadosCiclo; hoje: Data; aoFechar: () => void; avisar: (m: string) => void }) {
-  const [valor, setValor] = useState(0);
+/** RF08 — Modo Rolê: reserva dinheiro para um dia, diluindo nos dias restantes. */
+export function FolhaRole({ d, hoje, aoFechar, avisar }: { d: DadosCiclo; hoje: Data; aoFechar: () => void; avisar: (m: string) => void }) {
+  const fim = ultimoDia(d.ciclo);
+  const sabado = proximoSabado(hoje);
   const [descricao, setDescricao] = useState('');
+  const [data, setData] = useState(sabado <= fim ? sabado : hoje);
+  const [valor, setValor] = useState(0);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const estado = montarEstado(d);
+  const antes = tetoDoDia(estado, hoje).resultado;
+  const depois = valor > 0 && data >= hoje && data <= fim
+    ? tetoDoDia({ ...estado, reservas: [...estado.reservas, { data, valor }] }, hoje).resultado
+    : null;
+
   return (
-    <Folha titulo="Entrou dinheiro" aoFechar={aoFechar}>
-      <CampoDinheiro rotulo="Valor recebido" grande autoFocus valor={valor} aoMudar={setValor} />
-      <label className="campo" style={{ marginTop: 16 }}><span>De onde veio?</span>
-        <input className="entrada" placeholder="Ex.: Bolsa NEABI" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+    <Folha titulo="Agendar rolê" aoFechar={aoFechar}>
+      <label className="campo"><span>O que vai ser?</span>
+        <input className="entrada" placeholder="Ex.: Jantar de aniversário" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
       </label>
-      <p className="sub">O teto é recalculado na hora. A separação automática para metas ("Caiu, Guardou") chega na próxima fase.</p>
-      <button className="btn btn-primario btn-bloco" disabled={valor <= 0}
-        onClick={async () => { await registrarEntrada(d.ciclo.id, hoje, valor, descricao.trim() || 'Entrada'); avisar(`Entrada de ${reais(valor)} registrada.`); aoFechar(); }}>
-        Registrar
+      <label className="campo"><span>Quando</span>
+        <input type="date" className="entrada" min={hoje} max={fim} value={data} onChange={(e) => { setData(e.target.value); setErro(null); }} />
+      </label>
+      <label className="campo"><span>Quanto reservar</span>
+        <CampoDinheiro rotulo="Valor reservado" valor={valor} aoMudar={(v) => { setValor(v); setErro(null); }} />
+      </label>
+      {depois && !depois.modoAperto && (
+        <div className="aviso info">Seu teto de hoje passa de {reais(antes.teto)} para {reais(depois.teto)}, e em {dataCurta(data)} você terá {reais(valor)} a mais.</div>
+      )}
+      {(erro || (depois && depois.modoAperto)) && <div className="aviso alerta">{erro ?? `Não cabe no ciclo: o máximo agora é ${reais(Math.max(0, antes.livre))}.`}</div>}
+      <button className="btn btn-primario btn-bloco" disabled={valor <= 0 || !descricao.trim()}
+        onClick={async () => {
+          const v = await agendarRole(d, hoje, { data, valor, descricao: descricao.trim() });
+          if (v.ok) { avisar(`Rolê agendado para ${dataCurta(data)}.`); aoFechar(); }
+          else setErro(v.motivo === 'NAO_CABE' ? `Não cabe no ciclo: o máximo agora é ${reais(v.maximo)}.` : 'Escolha um dia dentro do ciclo.');
+        }}>
+        Agendar
       </button>
     </Folha>
   );

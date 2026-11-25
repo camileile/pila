@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { base, ultimoDia } from './engine';
-import { montarEstado } from './db/estado';
+import { dataLancamento, montarEstado } from './db/estado';
 import { usarConfig, usarDadosCiclo } from './db/usarDados';
 import { hojeApp } from './lib/formato';
 import { Extrato } from './telas/Extrato';
-import { FolhaEntrada, FolhaFechar, FolhaGasto } from './telas/Folhas';
+import { FolhaFechar, FolhaGasto, FolhaRole } from './telas/Folhas';
 import { Hoje, type Acao } from './telas/Hoje';
 import { Mais } from './telas/Mais';
+import { Metas } from './telas/Metas';
+import { FolhaEntrada } from './telas/Rendas';
 import { NovoCiclo } from './telas/NovoCiclo';
 import { Icone } from './ui/componentes';
 
-type Aba = 'hoje' | 'extrato' | 'mais';
+type Aba = 'hoje' | 'extrato' | 'metas' | 'mais';
 
 /** Atualiza "hoje" quando o app volta para a frente (ex.: virou o dia). */
 function usarHoje() {
@@ -40,7 +42,8 @@ export function App() {
   if (d === undefined) return null;
 
   if (d === null || acao?.tipo === 'novoCiclo') {
-    const saldoSugerido = d ? base(montarEstado(d)).saldo : undefined;
+    const novo = acao?.tipo === 'novoCiclo' ? acao : undefined;
+    const saldoSugerido = novo?.saldo ?? (d ? base(montarEstado(d)).saldo : undefined);
     return (
       <main className="app" style={{ paddingBottom: 32 }}>
         {d === null && (
@@ -49,7 +52,7 @@ export function App() {
             <p><strong>Quanto posso gastar hoje?</strong><br />Vamos montar seu primeiro ciclo.</p>
           </div>
         )}
-        <NovoCiclo saldoSugerido={saldoSugerido} aoCancelar={d ? fechar : undefined}
+        <NovoCiclo saldoSugerido={saldoSugerido} aporteFinal={novo?.aporteFinal} aoCancelar={d ? fechar : undefined}
           aoCriar={() => { setAcao(null); setAba('hoje'); avisar('Ciclo criado. Bora!'); }} />
       </main>
     );
@@ -58,12 +61,14 @@ export function App() {
   const fim = ultimoDia(d.ciclo);
   const emAndamento = hoje >= d.ciclo.dataInicio && hoje <= fim;
   const hojeFechado = base(montarEstado(d)).data >= hoje;
+  const dataMov = dataLancamento(d, hoje);
 
   return (
     <>
       <main className="app">
         {aba === 'hoje' && <Hoje d={d} hoje={hoje} config={config} abrir={setAcao} />}
         {aba === 'extrato' && <Extrato d={d} />}
+        {aba === 'metas' && <Metas d={d} hoje={hoje} dataMov={dataMov} avisar={avisar} />}
         {aba === 'mais' && <Mais d={d} hoje={hoje} config={config} abrir={setAcao} avisar={avisar} />}
       </main>
 
@@ -75,15 +80,18 @@ export function App() {
       )}
 
       <nav className="nav" aria-label="Navegação principal">
-        {(['hoje', 'extrato', 'mais'] as const).map((a) => (
+        {(['hoje', 'extrato', 'metas', 'mais'] as const).map((a) => (
           <button key={a} aria-current={aba === a ? 'page' : undefined} onClick={() => setAba(a)}>
-            <Icone nome={a} />{{ hoje: 'Hoje', extrato: 'Extrato', mais: 'Mais' }[a]}
+            <Icone nome={a} />{{ hoje: 'Hoje', extrato: 'Extrato', metas: 'Metas', mais: 'Mais' }[a]}
           </button>
         ))}
       </nav>
 
-      {acao?.tipo === 'gasto' && <FolhaGasto d={d} hoje={hoje} aoFechar={fechar} avisar={avisar} />}
-      {acao?.tipo === 'entrada' && <FolhaEntrada d={d} hoje={emAndamento ? hoje : fim} aoFechar={fechar} avisar={avisar} />}
+      {acao?.tipo === 'gasto' && <FolhaGasto d={d} data={hoje} aoFechar={fechar} avisar={avisar} />}
+      {acao?.tipo === 'role' && <FolhaRole d={d} hoje={hoje} aoFechar={fechar} avisar={avisar} />}
+      {acao?.tipo === 'entrada' && dataMov && (
+        <FolhaEntrada d={d} data={dataMov} fonteInicial={acao.fonteId} aoFechar={fechar} avisar={avisar} />
+      )}
       {acao?.tipo === 'fechar' && (
         <FolhaFechar d={d} ate={acao.ate} aoFechar={fechar} avisar={avisar}
           aoRegistrarEntrada={() => setAcao({ tipo: 'entrada' })} />

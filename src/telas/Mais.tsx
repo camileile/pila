@@ -5,6 +5,7 @@ import type { ConfigRow } from '../db/db';
 import type { DadosCiclo } from '../db/estado';
 import { dataCurta } from '../lib/formato';
 import type { Acao } from './Hoje';
+import { CartaoFontes } from './Rendas';
 
 export function Mais({ d, hoje, config, abrir, avisar }: {
   d: DadosCiclo; hoje: string; config?: ConfigRow; abrir: (a: Acao) => void; avisar: (m: string) => void;
@@ -44,6 +45,8 @@ export function Mais({ d, hoje, config, abrir, avisar }: {
           <button className="btn" onClick={() => confirm('Começar um novo ciclo agora? O atual será encerrado e as contas pendentes vão junto como atrasadas.') && abrir({ tipo: 'novoCiclo' })}>Novo ciclo</button>
         </div>
       </section>
+
+      <CartaoFontes />
 
       <section className="card">
         <h2>Backup</h2>
