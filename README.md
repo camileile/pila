@@ -45,6 +45,11 @@ npm run coverage  # cobertura
 npm run logo      # regera os SVGs da marca
 ```
 
+## Publicar e gerar o APK
+
+Deploy na Vercel (configurado em `vercel.json`) e APK pelo PWABuilder: veja
+[docs/deploy-e-apk.md](docs/deploy-e-apk.md).
+
 ## Estrutura
 
 ```

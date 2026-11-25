@@ -9,11 +9,16 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
+        // `id`, `scope` e `categories` são usados pelo PWABuilder para gerar o APK.
+        id: '/',
         name: 'Pila',
         short_name: 'Pila',
         description: 'Quanto posso gastar hoje? Cada pila conta.',
         lang: 'pt-BR',
+        dir: 'ltr',
         start_url: '/',
+        scope: '/',
+        categories: ['finance', 'productivity'],
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#F5F7FA',
