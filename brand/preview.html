@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pila — logos</title>
+<style>
+  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: #F5F7FA; color: #14171C; padding: 32px; }
+  h1 { margin: 0 0 4px; } h2 { margin: 32px 0 12px; font-size: 16px; }
+  p { color: #626B7A; margin: 0 0 16px; }
+  .grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .card { border-radius: 16px; padding: 28px; display: grid; place-items: center; min-height: 150px; border: 1px solid #DDE2EA; }
+  .card img { max-width: 100%; max-height: 120px; }
+  .claro { background: #fff; } .azul { background: #0131CD; } .escuro { background: #14171C; }
+  .rotulo { font-size: 12px; color: #626B7A; margin-top: 6px; text-align: center; }
+  .icones { display: flex; gap: 24px; align-items: end; }
+  .icones img { border-radius: 22%; }
+  .tamanhos { display: flex; gap: 24px; align-items: end; background: #fff; padding: 24px; border-radius: 16px; }
+</style>
+</head>
+<body>
+<h1>pila.</h1>
+<p>Cada pila conta. Prancha de conferência dos vetores (gerados por gerar-logo.mjs).</p>
+
+<script>
+  const tipos = ['horizontal', 'vertical', 'simbolo', 'assinatura'];
+  const variantes = [['cor', 'claro'], ['negativo', 'azul'], ['preto', 'claro'], ['branco', 'escuro']];
+  for (const t of tipos) {
+    document.write(`<h2>${t}</h2><div class="grade">`);
+    for (const [v, fundo] of variantes)
+      document.write(`<div><div class="card ${fundo}"><img src="logo/pila-${t}-${v}.svg" alt=""></div><div class="rotulo">${v}</div></div>`);
+    document.write('</div>');
+  }
+</script>
+
+<h2>Ícones (app e favicon)</h2>
+<div class="icones">
+  <div><img src="icones/icone-maskable.svg" width="120" alt=""><div class="rotulo">maskable / Apple</div></div>
+  <div><img src="icones/favicon.svg" width="64" alt=""><div class="rotulo">favicon 64</div></div>
+  <div><img src="icones/favicon.svg" width="32" alt=""><div class="rotulo">32</div></div>
+  <div><img src="icones/favicon.svg" width="16" alt=""><div class="rotulo">16</div></div>
+</div>
+
+<h2>Tamanhos pequenos</h2>
+<div class="tamanhos">
+  <img src="logo/pila-horizontal-cor.svg" height="64" alt="">
+  <img src="logo/pila-horizontal-cor.svg" height="32" alt="">
+  <img src="logo/pila-horizontal-cor.svg" height="20" alt="">
+</div>
+</body>
+</html>
