@@ -40,6 +40,8 @@ export interface ContaCicloRow extends Base {
   valor: Centavos;
   pagaEm?: Data;
   atrasada: boolean;
+  /** RF16 — adiada para o próximo ciclo: sai do cálculo deste ciclo. */
+  adiada?: boolean;
 }
 
 export interface RegistroFixoRow extends Base {
@@ -103,6 +105,10 @@ export interface FechamentoRow extends Base {
 export interface ConfigRow {
   id: 'config';
   ultimoBackupEm?: string;
+  /** Streak com 1 dia de folga por semana (§3.9). Padrão: ligado. */
+  folgaSemanal?: boolean;
+  /** Segundas-feiras das semanas cujo fechamento semanal já foi decidido (§3.10). */
+  semanasResolvidas?: Data[];
 }
 
 export class PilaDB extends Dexie {

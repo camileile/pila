@@ -7,7 +7,8 @@ export async function exportarBackup(): Promise<Blob> {
   const tabelas: Record<string, unknown[]> = {};
   for (const t of TABELAS) tabelas[t] = await db.table(t).toArray();
   const conteudo = { app: 'pila', versao: VERSAO, exportadoEm: new Date().toISOString(), tabelas };
-  await db.config.put({ id: 'config', ultimoBackupEm: conteudo.exportadoEm });
+  const config = await db.config.get('config');
+  await db.config.put({ ...config, id: 'config', ultimoBackupEm: conteudo.exportadoEm });
   return new Blob([JSON.stringify(conteudo)], { type: 'application/json' });
 }
 

@@ -2,10 +2,13 @@
 import {
   base,
   ehDiaAtivo,
+  diaDaSemana,
   intervalo,
+  segundaDaSemana,
   somarDias,
   ultimoDia,
   type Centavos,
+  type DiaFechado,
   type Data,
   type EstadoCiclo,
 } from '../engine';
@@ -31,7 +34,7 @@ export function montarEstado(d: DadosCiclo): EstadoCiclo {
   return {
     ciclo: d.ciclo,
     gastosFixos: d.gastosFixos.filter((g) => g.ativo),
-    contas: d.contas.map((c) => ({ valor: c.valor, pagaEm: c.pagaEm })),
+    contas: d.contas.filter((c) => !c.adiada).map((c) => ({ valor: c.valor, pagaEm: c.pagaEm })),
     reservas: d.reservas.map((r) => ({ data: r.data, valor: r.valor })),
     movimentos: d.movimentos.map((m) => ({ data: m.data, tipo: m.tipo, valor: m.valor, metaId: m.metaId })),
     ultimoFechamento: ult ? { data: ult.dataFim, saldo: ult.saldoFinal } : null,
@@ -63,6 +66,33 @@ export function dataLancamento(d: DadosCiclo, hoje: Data): Data | null {
   const proximoAberto = somarDias(base(montarEstado(d)).data, 1);
   const data = hoje > proximoAberto ? hoje : proximoAberto;
   return data <= ultimoDia(d.ciclo) ? data : null;
+}
+
+/** Expande cada fechamento nos dias que ele cobre, para o cálculo do Streak. */
+export function diasDosFechamentos(f: FechamentoRow[]): DiaFechado[] {
+  return f.flatMap((x) => intervalo(x.dataInicio, x.dataFim).map((data) => ({ data, dentro: x.dentro })));
+}
+
+export interface SemanaParaFechar {
+  segunda: Data;
+  domingo: Data;
+  economia: Centavos;
+}
+
+/**
+ * §3.10 — semana que ainda precisa de decisão: a atual se hoje é domingo e já foi fechado,
+ * senão a semana anterior. Só aparece se teve economia e ainda não foi resolvida.
+ */
+export function semanaParaFechar(d: DadosCiclo, hoje: Data, resolvidas: Data[] = []): SemanaParaFechar | null {
+  const segAtual = segundaDaSemana(hoje);
+  const ultimo = ultimoFechamento(d.fechamentos)?.dataFim ?? '';
+  const segunda = diaDaSemana(hoje) === 0 && ultimo >= hoje ? segAtual : somarDias(segAtual, -7);
+  const domingo = somarDias(segunda, 6);
+  if (resolvidas.includes(segunda)) return null;
+  const economia = d.fechamentos
+    .filter((f) => f.dataFim >= segunda && f.dataFim <= domingo)
+    .reduce((t, f) => t + f.economia, 0);
+  return economia > 0 ? { segunda, domingo, economia } : null;
 }
 
 /** Lançamentos de categorização de todo o período em aberto até `ate`. */

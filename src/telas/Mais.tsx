@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { ultimoDia } from '../engine';
+import { definirFolgaSemanal } from '../db/acoes';
 import { exportarBackup, importarBackup } from '../db/backup';
 import type { ConfigRow } from '../db/db';
 import type { DadosCiclo } from '../db/estado';
@@ -47,6 +48,15 @@ export function Mais({ d, hoje, config, abrir, avisar }: {
       </section>
 
       <CartaoFontes />
+
+      <section className="card">
+        <h2>Streak</h2>
+        <label className="item" style={{ cursor: 'pointer' }}>
+          <span className="desc">Folga semanal<small>Um dia fora do teto por semana não zera a sequência.</small></span>
+          <input type="checkbox" style={{ width: 24, height: 24 }} checked={config?.folgaSemanal ?? true}
+            onChange={(e) => void definirFolgaSemanal(e.target.checked)} />
+        </label>
+      </section>
 
       <section className="card">
         <h2>Backup</h2>

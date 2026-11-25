@@ -5,7 +5,7 @@ import {
 } from '../engine';
 import {
   ativo, carimboAgora, db, novo,
-  type Base, type CicloRow, type ContaFixaRow, type FonteRendaRow, type GastoFixoRow, type MetaRow,
+  type Base, type CicloRow, type ConfigRow, type ContaFixaRow, type FonteRendaRow, type GastoFixoRow, type MetaRow,
 } from './db';
 import { lancamentosAte, montarEstado, type DadosCiclo } from './estado';
 
@@ -142,6 +142,24 @@ export async function agendarRole(d: DadosCiclo, hoje: Data, r: { data: Data; va
   if (v.ok) await db.reservas.add(novo({ cicloId: d.ciclo.id, ...r }));
   return v;
 }
+
+/** RF16 — adia (ou desfaz o adiamento de) uma conta: ela vai para o próximo ciclo como atrasada. */
+export async function adiarConta(id: string, adiada = true) {
+  await db.contasCiclo.update(id, { adiada, ...carimboAgora() });
+}
+
+async function atualizarConfig(mudar: (c: ConfigRow) => Partial<ConfigRow>) {
+  await db.transaction('rw', db.config, async () => {
+    const c = (await db.config.get('config')) ?? { id: 'config' as const };
+    await db.config.put({ ...c, ...mudar(c) });
+  });
+}
+
+export const definirFolgaSemanal = (ligada: boolean) => atualizarConfig(() => ({ folgaSemanal: ligada }));
+
+/** §3.10 — marca a semana como resolvida para o fechamento semanal não aparecer de novo. */
+export const resolverSemana = (segunda: Data) =>
+  atualizarConfig((c) => ({ semanasResolvidas: [...new Set([...(c.semanasResolvidas ?? []), segunda])].slice(-20) }));
 
 export async function removerRole(id: string) {
   await db.reservas.update(id, { excluidoEm: new Date().toISOString(), ...carimboAgora() });

@@ -90,6 +90,8 @@ const caminhos = {
   extrato: 'M5 4h14M5 9h14M5 14h14M5 19h9',
   metas: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01',
   mais: 'M5 12h.01M12 12h.01M19 12h.01',
+  // Chama linear no mesmo traço dos outros ícones: contorno + chama interna.
+  fogo: 'M12 21a6 6 0 0 1-6-6c0-3.2 2.2-5.3 3.6-7.6.6 1.6 1.6 2.6 2.9 3C12.6 7.6 13.3 5 15 3c.6 3 3 5.6 3 9.4V15a6 6 0 0 1-6 6zM12 21a2.6 2.6 0 0 1-2.6-2.6c0-1.6 1.4-2.7 2.6-4.2 1.2 1.5 2.6 2.6 2.6 4.2A2.6 2.6 0 0 1 12 21z',
 };
 export function Icone({ nome }: { nome: keyof typeof caminhos }) {
   return (

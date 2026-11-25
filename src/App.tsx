@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { base, ultimoDia } from './engine';
-import { dataLancamento, montarEstado } from './db/estado';
-import { usarConfig, usarDadosCiclo } from './db/usarDados';
+import { base, calcularStreak, ultimoDia } from './engine';
+import { dataLancamento, diasDosFechamentos, montarEstado } from './db/estado';
+import { usarConfig, usarDadosCiclo, usarTodosFechamentos } from './db/usarDados';
 import { hojeApp } from './lib/formato';
 import { Extrato } from './telas/Extrato';
 import { FolhaFechar, FolhaGasto, FolhaRole } from './telas/Folhas';
@@ -28,6 +28,7 @@ function usarHoje() {
 export function App() {
   const d = usarDadosCiclo();
   const config = usarConfig();
+  const todosFechamentos = usarTodosFechamentos();
   const hoje = usarHoje();
   const [aba, setAba] = useState<Aba>('hoje');
   const [acao, setAcao] = useState<Acao | null>(null);
@@ -62,11 +63,12 @@ export function App() {
   const emAndamento = hoje >= d.ciclo.dataInicio && hoje <= fim;
   const hojeFechado = base(montarEstado(d)).data >= hoje;
   const dataMov = dataLancamento(d, hoje);
+  const streak = calcularStreak(diasDosFechamentos(todosFechamentos ?? []), { folgaSemanal: config?.folgaSemanal ?? true }).at(-1)?.streak ?? 0;
 
   return (
     <>
       <main className="app">
-        {aba === 'hoje' && <Hoje d={d} hoje={hoje} config={config} abrir={setAcao} />}
+        {aba === 'hoje' && <Hoje d={d} hoje={hoje} config={config} streak={streak} abrir={setAcao} avisar={avisar} />}
         {aba === 'extrato' && <Extrato d={d} />}
         {aba === 'metas' && <Metas d={d} hoje={hoje} dataMov={dataMov} avisar={avisar} />}
         {aba === 'mais' && <Mais d={d} hoje={hoje} config={config} abrir={setAcao} avisar={avisar} />}

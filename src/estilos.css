@@ -32,6 +32,8 @@ h2 { font-size: 18px; margin: 0 0 12px; }
 .topo { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 16px; }
 .topo img { height: 28px; }
 .sub { color: var(--cinza); font-size: 13px; }
+.streak svg { width: 18px; height: 18px; flex: none; }
+.streak { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 3px 10px 3px 8px; border-radius: 99px; background: var(--limao); color: var(--grafite); font-size: 13px; font-weight: 600; }
 
 /* Cartões */
 .card { background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio); padding: 16px; margin-bottom: 12px; }
@@ -72,6 +74,10 @@ h2 { font-size: 18px; margin: 0 0 12px; }
 .grupo { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { min-height: 44px; border-radius: 99px; border: 1px solid var(--borda); background: var(--branco); padding: 0 16px; font-weight: 500; }
 .chip[aria-pressed='true'] { background: var(--azul); border-color: var(--azul); color: var(--branco); }
+.rolagem { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 12px; padding: 2px 16px; scrollbar-width: none; }
+.rolagem .chip { flex: none; }
+.linha-botao { width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; min-height: 44px; }
+.linha-botao[aria-pressed='true'] { color: var(--azul); font-weight: 600; }
 .passo { display: inline-flex; align-items: center; border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; }
 .passo button { width: 44px; height: 44px; border: 0; background: var(--fundo); font-size: 20px; }
 .passo span { min-width: 40px; text-align: center; font-weight: 600; }

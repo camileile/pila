@@ -29,7 +29,8 @@ quanto você já gastou, ele responde uma pergunta só:
 | 1. Motor de cálculo (`src/engine`) | ✅ 58 testes, 100% de cobertura |
 | 2. App diário (PWA) | ✅ ciclo, dashboard, checklist, gasto rápido, fechamento, extrato, backup |
 | 3. Rendas e metas | ✅ Caiu, Guardou, metas e cofrinho, Modo Rolê, sobra do ciclo |
-| 4. Streak, fechamento semanal, extrato | ⏳ próxima |
+| 4. Streak, fechamento semanal, extrato | ✅ Streak com folga, fechamento semanal, filtros, modo aperto |
+| 5. Nuvem (login, sincronização) | quando fizer sentido |
 
 ## Desenvolvimento
 
