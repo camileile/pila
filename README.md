@@ -27,8 +27,8 @@ quanto você já gastou, ele responde uma pergunta só:
 |---|---|
 | 0. Escopo v2 e casos de teste | ✅ |
 | 1. Motor de cálculo (`src/engine`) | ✅ 58 testes, 100% de cobertura |
-| 2. App diário (PWA) | ⏳ próxima |
-| 3. Rendas e metas | — |
+| 2. App diário (PWA) | ✅ ciclo, dashboard, checklist, gasto rápido, fechamento, extrato, backup |
+| 3. Rendas e metas | ⏳ próxima |
 | 4. Streak, fechamento semanal, extrato | — |
 
 ## Desenvolvimento
@@ -37,7 +37,9 @@ Requer Node 20+.
 
 ```bash
 npm install
-npm test          # testes do motor
+npm run dev       # app em http://localhost:5173 (use ?hoje=2026-03-02 para simular um dia)
+npm run build     # build de produção com PWA em dist/
+npm test          # testes do motor e do banco
 npm run coverage  # cobertura
 npm run logo      # regera os SVGs da marca
 ```
@@ -47,7 +49,9 @@ npm run logo      # regera os SVGs da marca
 ```
 docs/        escopo v2 e casos de teste (golden cases)
 src/engine/  motor de cálculo em TypeScript puro, sem dependências
-brand/       logo vetorial, variações e gerador
+src/db/      banco local (Dexie/IndexedDB), ações e backup
+src/telas/   telas do app (Hoje, Extrato, Mais, Novo ciclo, folhas)
+brand/       logo vetorial, ícones e geradores
 ```
 
-Stack prevista para o app: Vite, React, TypeScript, Dexie (IndexedDB) e vite-plugin-pwa.
+Stack: Vite, React, TypeScript, Dexie (IndexedDB) e vite-plugin-pwa.
