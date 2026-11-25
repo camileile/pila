@@ -8,3 +8,4 @@ export * from './carimbo';
 export * from './reserva';
 export * from './streak';
 export * from './metas';
+export * from './aperto';

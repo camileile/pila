@@ -18,6 +18,7 @@ import {
   saldoMeta,
   segundaDaSemana,
   somarMeses,
+  sugerirAdiamento,
   validarRegraCarimbo,
   type EstadoCiclo,
 } from './index';
@@ -87,6 +88,20 @@ describe('termômetro', () => {
     expect(faixaTermometro(0, 0)).toBe('atencao');
     expect(faixaTermometro(-1, 100)).toBe('alerta');
     expect(estadoDoDia({ teto: 1000, provisaoPadrao: 0, gastosVariaveis: 1200 }).faixa).toBe('alerta');
+  });
+});
+
+describe('modo aperto — sugerir contas para adiar (RF16)', () => {
+  it('CT05: déficit de 47 com internet (35) e celular (20) → adiar as duas', () => {
+    expect(sugerirAdiamento([3500, 2000], 4700)).toEqual([0, 1]);
+  });
+  it('prefere uma conta só quando ela basta, e a menor possível', () => {
+    expect(sugerirAdiamento([8000, 3500, 2000], 3000)).toEqual([1]);
+    expect(sugerirAdiamento([8000, 3500, 2000], 5000)).toEqual([0]);
+  });
+  it('sem déficit ou impossível cobrir → nada', () => {
+    expect(sugerirAdiamento([3500], 0)).toEqual([]);
+    expect(sugerirAdiamento([3500], 9000)).toEqual([]);
   });
 });
 

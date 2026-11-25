@@ -3,15 +3,16 @@ import {
   base, diferencaDias, ehDiaAtivo, encerrarCiclo, estadoDoDia, somarDias, tetoDoDia, ultimoDia,
   type Centavos, type Data,
 } from '../engine';
-import { pagarConta, registrarChecklist, removerRole } from '../db/acoes';
+import { adiarConta, pagarConta, registrarChecklist, removerRole } from '../db/acoes';
 import type { ConfigRow, GastoFixoRow } from '../db/db';
 import {
   dataLancamento, gastosVariaveisEntre, montarEstado, provisaoRealDia, ultimoFechamento, type DadosCiclo,
 } from '../db/estado';
 import { usarMetas } from '../db/metas';
 import { AReceber } from './Rendas';
+import { FechamentoSemanal, ModoAperto } from './Semana';
 import { dataCurta, reais } from '../lib/formato';
-import { Passo, Valor } from '../ui/componentes';
+import { Icone, Passo, Valor } from '../ui/componentes';
 
 export type Acao =
   | { tipo: 'gasto' }
@@ -26,7 +27,9 @@ const FAIXA = {
   alerta: '✕ Passou do limite',
 } as const;
 
-export function Hoje({ d, hoje, config, abrir }: { d: DadosCiclo; hoje: Data; config?: ConfigRow; abrir: (a: Acao) => void }) {
+export function Hoje({ d, hoje, config, streak, abrir, avisar }: {
+  d: DadosCiclo; hoje: Data; config?: ConfigRow; streak: number; abrir: (a: Acao) => void; avisar: (m: string) => void;
+}) {
   const estado = montarEstado(d);
   const b = base(estado);
   const fim = ultimoDia(d.ciclo);
@@ -35,9 +38,17 @@ export function Hoje({ d, hoje, config, abrir }: { d: DadosCiclo; hoje: Data; co
   const topo = (
     <div className="topo">
       <img src="/logo/pila-horizontal-cor.svg" alt="Pila" />
-      <span className="sub">{dataCurta(hoje)}</span>
+      <div style={{ textAlign: 'right' }}>
+        <div className="sub">{dataCurta(hoje)}</div>
+        {streak > 0 && (
+          <div className="streak" aria-label={`${streak} ${streak === 1 ? 'dia' : 'dias'} seguidos no azul`}>
+            <Icone nome="fogo" />{streak} {streak === 1 ? 'dia' : 'dias'} no azul
+          </div>
+        )}
+      </div>
     </div>
   );
+  const semanal = <FechamentoSemanal d={d} hoje={hoje} config={config} avisar={avisar} />;
 
   const lembreteBackup = precisaBackup(config, d.ciclo.criadoEm, hoje) && (
     <div className="aviso info">Faz um tempo sem backup. Seus dados só existem neste celular.<span className="sub">Mais → Backup</span></div>
@@ -86,6 +97,7 @@ export function Hoje({ d, hoje, config, abrir }: { d: DadosCiclo; hoje: Data; co
           <div>{ult && mensagemFechamento(ult.economia)}</div>
           {tetoAmanha !== null && <div className="linha"><span>Amanhã você pode gastar</span><strong className="num">{reais(tetoAmanha)}</strong></div>}
         </div>
+        {semanal}
         <Contas d={d} data={dataLancamento(d, hoje)} />
         <Roles d={d} hoje={hoje} />
         {lembreteBackup}
@@ -113,11 +125,8 @@ export function Hoje({ d, hoje, config, abrir }: { d: DadosCiclo; hoje: Data; co
           <button className="btn btn-peq" onClick={() => abrir({ tipo: 'fechar', ate: somarDias(hoje, -1) })}>Fechar</button>
         </div>
       )}
-      {dia.resultado.modoAperto && (
-        <div className="aviso alerta">
-          Seu saldo não cobre todos os compromissos. Faltam {reais(dia.resultado.deficit)} até o fim do ciclo. Confira as contas pendentes.
-        </div>
-      )}
+      {dia.resultado.modoAperto && <ModoAperto d={d} deficit={dia.resultado.deficit} />}
+      {semanal}
 
       <section className="card card-teto" aria-label="Posso gastar hoje">
         <div className="rotulo">Posso gastar hoje</div>
@@ -252,9 +261,14 @@ function Contas({ d, data }: { d: DadosCiclo; data: Data | null }) {
       {pendentes.length === 0 && <p className="positivo" style={{ margin: 0 }}>✓ Todas as contas do ciclo estão pagas.</p>}
       {pendentes.map((c) => (
         <div key={c.id} className="item">
-          <div className="desc">{c.descricao}{c.atrasada && <small className="alerta">Atrasada do ciclo anterior</small>}</div>
+          <div className="desc">
+            <span className={c.adiada ? 'riscado' : ''}>{c.descricao}</span>
+            {c.adiada ? <small>Adiada para o próximo ciclo</small> : c.atrasada && <small className="alerta">Atrasada do ciclo anterior</small>}
+          </div>
           <Valor c={c.valor} />
-          {data && <button className="btn btn-peq" onClick={() => void pagarConta(c.id, data)}>Paguei</button>}
+          {c.adiada
+            ? <button className="btn btn-peq" onClick={() => void adiarConta(c.id, false)}>Desfazer</button>
+            : data && <button className="btn btn-peq" onClick={() => void pagarConta(c.id, data)}>Paguei</button>}
         </div>
       ))}
       {pagas > 0 && pendentes.length > 0 && <p className="sub" style={{ margin: '8px 0 0' }}>{pagas} já paga{pagas > 1 ? 's' : ''}.</p>}

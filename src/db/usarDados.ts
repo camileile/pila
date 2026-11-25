@@ -22,6 +22,9 @@ export function usarDadosCiclo(): DadosCiclo | null | undefined {
 
 export const usarConfig = () => useLiveQuery(() => db.config.get('config'));
 
+/** Fechamentos de todos os ciclos: o Streak atravessa ciclos. */
+export const usarTodosFechamentos = () => useLiveQuery(() => db.fechamentos.filter(ativo).toArray());
+
 /** Modelos ativos para pré-preencher um ciclo novo. */
 export const usarModelos = () =>
   useLiveQuery(async () => ({
