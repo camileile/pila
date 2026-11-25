@@ -88,6 +88,7 @@ export function Valor({ c, className }: { c: Centavos; className?: string }) {
 const caminhos = {
   hoje: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
   extrato: 'M5 4h14M5 9h14M5 14h14M5 19h9',
+  metas: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01',
   mais: 'M5 12h.01M12 12h.01M19 12h.01',
 };
 export function Icone({ nome }: { nome: keyof typeof caminhos }) {

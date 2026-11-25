@@ -28,8 +28,8 @@ quanto você já gastou, ele responde uma pergunta só:
 | 0. Escopo v2 e casos de teste | ✅ |
 | 1. Motor de cálculo (`src/engine`) | ✅ 58 testes, 100% de cobertura |
 | 2. App diário (PWA) | ✅ ciclo, dashboard, checklist, gasto rápido, fechamento, extrato, backup |
-| 3. Rendas e metas | ⏳ próxima |
-| 4. Streak, fechamento semanal, extrato | — |
+| 3. Rendas e metas | ✅ Caiu, Guardou, metas e cofrinho, Modo Rolê, sobra do ciclo |
+| 4. Streak, fechamento semanal, extrato | ⏳ próxima |
 
 ## Desenvolvimento
 

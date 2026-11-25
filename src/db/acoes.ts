@@ -1,6 +1,12 @@
 // Todas as escritas no banco passam por aqui.
-import { fecharPeriodo, type Centavos, type Data, type Recesso } from '../engine';
-import { ativo, carimboAgora, db, novo, type CicloRow, type ContaFixaRow, type GastoFixoRow } from './db';
+import {
+  calcularCarimbo, fecharPeriodo, movimentosDaRenda, ultimoDia, validarRegraCarimbo, validarReserva,
+  type Centavos, type Data, type Recesso, type RegraCarimbo,
+} from '../engine';
+import {
+  ativo, carimboAgora, db, novo,
+  type Base, type CicloRow, type ContaFixaRow, type FonteRendaRow, type GastoFixoRow, type MetaRow,
+} from './db';
 import { lancamentosAte, montarEstado, type DadosCiclo } from './estado';
 
 export interface RascunhoCiclo {
@@ -12,16 +18,23 @@ export interface RascunhoCiclo {
   saldoInicial: Centavos;
   contas: { id?: string; descricao: string; valor: Centavos }[];
   gastos: { id?: string; descricao: string; valorUnitario: Centavos; qtdPadraoDia: number }[];
+  /** §3.11 — parte da sobra do ciclo anterior que vai para uma meta. */
+  aporteFinal?: { metaId: string; valor: Centavos };
 }
 
 /** Cria um ciclo novo; encerra o ativo e leva as contas pendentes como atrasadas (§3.11). */
 export async function criarCiclo(r: RascunhoCiclo) {
-  await db.transaction('rw', [db.ciclos, db.contasFixas, db.gastosFixos, db.contasCiclo], async () => {
+  await db.transaction('rw', [db.ciclos, db.contasFixas, db.gastosFixos, db.contasCiclo, db.movimentos], async () => {
     const anterior = await db.ciclos.where('status').equals('ATIVO').first();
     let atrasadas: { descricao: string; valor: Centavos; contaFixaId?: string }[] = [];
     if (anterior) {
       const contas = (await db.contasCiclo.where('cicloId').equals(anterior.id).toArray()).filter(ativo);
       atrasadas = contas.filter((c) => !c.pagaEm);
+      if (r.aporteFinal && r.aporteFinal.valor > 0)
+        await db.movimentos.add(novo({
+          cicloId: anterior.id, data: ultimoDia(anterior), tipo: 'APORTE_META' as const,
+          valor: r.aporteFinal.valor, metaId: r.aporteFinal.metaId, descricao: 'Sobra do ciclo',
+        }));
       await db.ciclos.update(anterior.id, { status: 'CONCLUIDO', ...carimboAgora() });
     }
 
@@ -72,8 +85,66 @@ export async function lancarGasto(cicloId: string, data: Data, valor: Centavos, 
   await db.movimentos.add(novo({ cicloId, data, tipo: 'GASTO_VARIAVEL' as const, valor, categoria }));
 }
 
-export async function registrarEntrada(cicloId: string, data: Data, valor: Centavos, descricao: string) {
-  await db.movimentos.add(novo({ cicloId, data, tipo: 'ENTRADA_RENDA' as const, valor, descricao }));
+/** §3.5 — registra uma renda e aplica o carimbo "Caiu, Guardou" (entrada bruta + aporte na meta). */
+export async function registrarRenda(cicloId: string, data: Data, bruto: Centavos, opcoes: {
+  descricao: string; fonteId?: string; regra?: RegraCarimbo; metaId?: string;
+}) {
+  const regra = opcoes.metaId ? opcoes.regra ?? { tipo: 'NENHUMA' } : { tipo: 'NENHUMA' as const };
+  const movs = movimentosDaRenda(data, bruto, regra, opcoes.metaId);
+  await db.movimentos.bulkAdd(movs.map((m) => novo({
+    ...m, cicloId, descricao: opcoes.descricao, fonteId: opcoes.fonteId, ...(m.tipo === 'APORTE_META' ? { categoria: 'Caiu, Guardou' } : {}),
+  })));
+  return calcularCarimbo(bruto, regra);
+}
+
+export async function aportarMeta(cicloId: string, data: Data, metaId: string, valor: Centavos, descricao = 'Guardado') {
+  await db.movimentos.add(novo({ cicloId, data, tipo: 'APORTE_META' as const, valor, metaId, descricao }));
+}
+
+export async function resgatarMeta(cicloId: string, data: Data, metaId: string, valor: Centavos) {
+  await db.movimentos.add(novo({ cicloId, data, tipo: 'RESGATE_META' as const, valor, metaId, descricao: 'Resgate' }));
+}
+
+/** Cofrinho Geral: criado na primeira vez que alguém precisa dele. */
+export async function garantirCofrinhoGeral(): Promise<string> {
+  const existente = (await db.metas.toArray()).find((m) => ativo(m) && m.tipo === 'GERAL');
+  if (existente) return existente.id;
+  const geral: MetaRow = novo({ tipo: 'GERAL' as const, titulo: 'Cofrinho Geral', ativa: true });
+  await db.metas.add(geral);
+  return geral.id;
+}
+
+export async function criarMeta(titulo: string, valorObjetivo: Centavos, dataAlvo: Data) {
+  const m: MetaRow = novo({ tipo: 'META' as const, titulo, valorObjetivo, dataAlvo, ativa: true });
+  await db.metas.add(m);
+  return m.id;
+}
+
+export async function arquivarMeta(id: string) {
+  await db.metas.update(id, { ativa: false, ...carimboAgora() });
+}
+
+export async function salvarFonte(f: Omit<FonteRendaRow, keyof Base | 'ativa'> & { id?: string }) {
+  const erro = validarRegraCarimbo(f.regraCarimbo);
+  if (erro) throw new RangeError(erro);
+  const { id, ...dados } = f;
+  if (id) await db.fontesRenda.update(id, { ...dados, ...carimboAgora() });
+  else await db.fontesRenda.add(novo({ ...dados, ativa: true }) as FonteRendaRow);
+}
+
+export async function removerFonte(id: string) {
+  await db.fontesRenda.update(id, { ativa: false, ...carimboAgora() });
+}
+
+/** §3.6 — Modo Rolê. Retorna a validação; só grava se couber no ciclo. */
+export async function agendarRole(d: DadosCiclo, hoje: Data, r: { data: Data; valor: Centavos; descricao: string }) {
+  const v = validarReserva(montarEstado(d), hoje, r);
+  if (v.ok) await db.reservas.add(novo({ cicloId: d.ciclo.id, ...r }));
+  return v;
+}
+
+export async function removerRole(id: string) {
+  await db.reservas.update(id, { excluidoEm: new Date().toISOString(), ...carimboAgora() });
 }
 
 export async function pagarConta(contaId: string, data: Data) {

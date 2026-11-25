@@ -3,6 +3,8 @@ import {
   base,
   ehDiaAtivo,
   intervalo,
+  somarDias,
+  ultimoDia,
   type Centavos,
   type Data,
   type EstadoCiclo,
@@ -51,6 +53,17 @@ export const gastosVariaveisEntre = (d: DadosCiclo, de: Data, ate: Data): Centav
   d.movimentos
     .filter((m) => m.tipo === 'GASTO_VARIAVEL' && m.data >= de && m.data <= ate)
     .reduce((t, m) => t + m.valor, 0);
+
+/**
+ * Data em que um lançamento novo deve entrar: hoje, ou o primeiro dia ainda aberto se hoje já foi
+ * fechado (senão o movimento cairia num dia fechado e viraria "gasto" no próximo fechamento).
+ * null quando o ciclo já foi todo fechado.
+ */
+export function dataLancamento(d: DadosCiclo, hoje: Data): Data | null {
+  const proximoAberto = somarDias(base(montarEstado(d)).data, 1);
+  const data = hoje > proximoAberto ? hoje : proximoAberto;
+  return data <= ultimoDia(d.ciclo) ? data : null;
+}
 
 /** Lançamentos de categorização de todo o período em aberto até `ate`. */
 export function lancamentosAte(d: DadosCiclo, ate: Data) {

@@ -41,6 +41,10 @@ h2 { font-size: 18px; margin: 0 0 12px; }
 .card-teto .linha { display: flex; justify-content: space-between; font-size: 14px; margin-top: 10px; gap: 8px; }
 .barra { height: 10px; border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; }
 .barra > span { display: block; height: 100%; background: var(--limao); border-radius: 99px; transition: width .3s; }
+/* Progresso de meta em fundo claro: limão com trilho e contorno (limão sobre branco não tem contraste). */
+.progresso { height: 14px; border-radius: 99px; background: var(--borda); border: 1px solid var(--grafite); overflow: hidden; }
+.progresso > span { display: block; height: 100%; background: var(--limao); border-right: 1px solid var(--grafite); }
+.progresso > span[style='width: 0%;'] { border: 0; }
 .selo { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 13px; font-weight: 600; background: var(--branco); }
 .selo.positivo { color: var(--positivo); } .selo.atencao { color: var(--atencao); } .selo.alerta { color: var(--alerta); }
 

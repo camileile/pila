@@ -1,6 +1,7 @@
 import { desfazerFechamento, excluirMovimento } from '../db/acoes';
 import type { FechamentoRow, MovimentoRow } from '../db/db';
 import { ultimoFechamento, type DadosCiclo } from '../db/estado';
+import { usarMetas } from '../db/metas';
 import { dataCurta, ddmm } from '../lib/formato';
 import { Valor } from '../ui/componentes';
 
@@ -15,6 +16,8 @@ const ROTULO: Record<MovimentoRow['tipo'], string> = {
 type Linha = { data: string; ordem: string; m?: MovimentoRow; f?: FechamentoRow };
 
 export function Extrato({ d }: { d: DadosCiclo }) {
+  const metas = usarMetas();
+  const nomeMeta = (id?: string) => metas?.find((m) => m.id === id)?.titulo;
   const ult = ultimoFechamento(d.fechamentos);
   const linhas: Linha[] = [
     ...d.movimentos.map((m) => ({ data: m.data, ordem: m.criadoEm, m })),
@@ -34,7 +37,7 @@ export function Extrato({ d }: { d: DadosCiclo }) {
           <div className="card">
             {itens.map((l) => l.m ? (
               <div key={l.m.id} className="item">
-                <div className="desc">{l.m.categoria ?? l.m.descricao ?? ROTULO[l.m.tipo]}<small>{ROTULO[l.m.tipo]}</small></div>
+                <div className="desc">{l.m.categoria ?? l.m.descricao ?? ROTULO[l.m.tipo]}<small>{ROTULO[l.m.tipo]}{l.m.metaId && nomeMeta(l.m.metaId) ? ` · ${nomeMeta(l.m.metaId)}` : ''}</small></div>
                 <Valor c={l.m.tipo === 'ENTRADA_RENDA' || l.m.tipo === 'RESGATE_META' ? l.m.valor : -l.m.valor}
                   className={l.m.tipo === 'ENTRADA_RENDA' ? 'positivo' : ''} />
                 <button className="btn btn-peq btn-perigo" aria-label="Excluir lançamento"
